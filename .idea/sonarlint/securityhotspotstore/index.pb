@@ -13,5 +13,3 @@
 ml_flow.py,3\6\36bd87f0cce724bc417b8c0a9d216e91b4d6e6b7
 E
 medical_insurance.csv,d\a\dadaa21d520b01bc97c19c510578e6910cfcd8f7
-7
-note.md,e\7\e748fec8358c9006913ea52e5a00583dd3409ffd
