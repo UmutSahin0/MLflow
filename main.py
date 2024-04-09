@@ -1,10 +1,12 @@
+#In this code, a ridge model with different parameters was created and tracked in MLflow.
+
 import pandas as pd
 import mlflow
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import r2_score,mean_squared_error,mean_absolute_error
 import matplotlib.pyplot as plt
+from sklearn.linear_model import Ridge
 
 
 # mlflow.set_experiment(experiment_name='startups')
@@ -57,7 +59,19 @@ def plot_model_performance(y_test, y_pred):
 
 columns_to_encode = ['sex', 'smoker', 'region']
 
+def create_experiment(name, artifact_location, tags):
+    mlflow.create_experiment(
+        name=name,
+        artifact_location=artifact_location,
+        tags=tags
+    )
+
+
 if __name__ == '__main__':
+
+    create_experiment('startups', 'startups_artifacts', {'env': 'dev', 'version': '1.0.0'})
+    mlflow.set_experiment(experiment_name='startups')
+
     #data load
     data = load_data('medical_insurance.csv')
 
@@ -68,36 +82,39 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test, train_test_split_params = train_test(data)
 
     #Regression model
-    reg = LinearRegression().fit(X_train, y_train)
-
-    #predict with regression model which is created
-    y_pred = reg.predict(X_test)
-
-    #calculate metrics
-    r2, mse, mae = calculate_metrics(y_test, y_pred)
-
-    plot_model_performance(y_test, y_pred)
-
-    #MLflow
-    with mlflow.start_run(run_name='startups_run'):
-
-        num_columns = len(data.columns)
-
-        mlflow.log_param('num_columns', num_columns)
-        mlflow.log_param('encoded_columns', columns_to_encode)
-        mlflow.log_param('encoding_type', 'LabelEncoder')
-        mlflow.log_param('train_test_split_params', train_test_split_params)
-        mlflow.log_param('Model parameters',reg.get_params())
+    alpha = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+    for alpha_value in alpha:
+        model = Ridge(alpha=alpha_value).fit(X_train, y_train)
 
 
-        mlflow.sklearn.log_model(reg, "linear_regression_model")
+        #predict with regression model which is created
+        y_pred = model.predict(X_test)
+
+        #calculate metrics
+        r2, mse, mae = calculate_metrics(y_test, y_pred)
+
+        plot_model_performance(y_test, y_pred)
+
+        #MLflow
+        with mlflow.start_run(run_name=f'startups_alpha_is_{alpha_value}'):
+
+            num_columns = len(data.columns)
+
+            mlflow.log_param('num_columns', num_columns)
+            mlflow.log_param('encoded_columns', columns_to_encode)
+            mlflow.log_param('encoding_type', 'LabelEncoder')
+            mlflow.log_param('train_test_split_params', train_test_split_params)
+            mlflow.log_param('Model parameters',model.get_params())
 
 
-        mlflow.log_metric("r2_score", r2)
-        mlflow.log_metric("mean squared error", mse)
-        mlflow.log_metric("mean absolute error", mae)
+            mlflow.sklearn.log_model(model, "model")
 
-        mlflow.log_artifact("test_vs_pred.png")
+
+            mlflow.log_metric("r2_score", r2)
+            mlflow.log_metric("mean squared error", mse)
+            mlflow.log_metric("mean absolute error", mae)
+
+            mlflow.log_artifact("test_vs_pred.png")
 
 
 
